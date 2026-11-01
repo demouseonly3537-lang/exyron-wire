@@ -1,0 +1,51 @@
+name: Publish APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check APK present
+        run: |
+          if [ -f EXYRON-WIRE.apk ]; then
+            mkdir -p dist
+            cp EXYRON-WIRE.apk dist/EXYRON-WIRE-v4.7.1.apk
+            ls -lh dist/
+          else
+            echo "EXYRON-WIRE.apk not in repo yet. Upload it to the repository root."
+            exit 0
+          fi
+
+      - name: Upload APK artifact
+        if: hashFiles('EXYRON-WIRE.apk') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: EXYRON-WIRE-APK
+          path: dist/*.apk
+          retention-days: 30
+
+      - name: Create GitHub Release
+        if: hashFiles('EXYRON-WIRE.apk') != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v4.7.1
+          name: EXYRON WIRE v4.7.1
+          body: |
+            Original APK of EXYRON WIRE (Happ Proxy)
+            - Package: com.happproxy
+            - Version: 4.7.1
+            - ABI: arm64-v8a
+          files: dist/EXYRON-WIRE-v4.7.1.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
